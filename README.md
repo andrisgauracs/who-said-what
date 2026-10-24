@@ -2,6 +2,8 @@
 
 A small macOS app that turns a podcast, interview or meeting recording into a transcript where every line is assigned to a speaker. Drop an audio or video file on the window and you get a speaker timeline, a clickable transcript and exports for subtitles and show notes. Everything runs on your Mac. No audio is uploaded.
 
+![Who Said What: drop a podcast, watch both models run, get a speaker-labelled transcript](docs/demo.gif)
+
 It's built on [**Who**](https://desertant.com/models/who/), the on-device speaker diarization model from [Desert Ant Labs](https://desertant.com/), paired with Apple's built-in speech transcriber.
 
 ## How it works
