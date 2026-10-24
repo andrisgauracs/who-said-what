@@ -1,0 +1,5 @@
+.build/
+*.app/
+.swiftpm/
+.DS_Store
+SUMMARY.md
