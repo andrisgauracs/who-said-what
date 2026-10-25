@@ -47,6 +47,7 @@ final class Session: ObservableObject {
     @Published var startedAt = Date()
     @Published var whoSeconds: Double?
     @Published var speechSeconds: Double?
+    @Published var speechStatus: String?
     @Published var totalSeconds: Double = 0
 
     private var timeObserver: Any?
@@ -100,7 +101,9 @@ final class Session: ObservableObject {
     }
 
     private func runSpeech(_ audio: URL, duration: Double) async throws -> [Word] {
-        let (words, took) = try await Pipeline.transcribe(audio, duration: duration) { p in
+        let (words, took) = try await Pipeline.transcribe(audio, duration: duration, status: { note in
+            Task { @MainActor in self.speechStatus = note }
+        }) { p in
             Task { @MainActor in self.update(transcribe: p) }
         }
         speechSeconds = took
@@ -153,6 +156,7 @@ final class Session: ObservableObject {
         hasVideo = false
         whoSeconds = nil
         speechSeconds = nil
+        speechStatus = nil
         stage = .idle
     }
 
@@ -281,7 +285,7 @@ struct ContentView: View {
 
     private func speechNote(_ progress: Double, _ elapsed: Double) -> String? {
         if let took = session.speechSeconds { return "\(seconds(took)) · \(speed(session.duration, took)) realtime" }
-        guard progress > 0 else { return nil }
+        guard progress > 0 else { return session.speechStatus }
         let done = progress * session.duration
         return "\(timestamp(done)) in · \(speed(done, elapsed)) realtime"
     }

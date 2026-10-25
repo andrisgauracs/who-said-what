@@ -10,7 +10,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "WhoSaidWhat",
-            dependencies: [.product(name: "Who", package: "desert-ant-core")],
+            dependencies: [
+                .product(name: "Who", package: "desert-ant-core"),
+                .product(name: "Voz", package: "desert-ant-core"),
+            ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
     ]

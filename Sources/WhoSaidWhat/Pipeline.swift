@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import Speech
+import Voz
 import Who
 
 struct Word {
@@ -20,6 +21,21 @@ struct Segment: Identifiable {
     var text: String { words.map(\.text).joined().trimmingCharacters(in: .whitespaces) }
 }
 
+/// The model that works out what was said.
+enum Transcriber: String {
+    /// Desert Ant's on-device Voz. Faster and more accurate than SpeechTranscriber; see docs/benchmark.md.
+    case voz
+    /// Apple's SpeechTranscriber, built into macOS 26. No download.
+    case apple
+
+    /// `--transcriber apple` on the command line, or `defaults write com.andrisgauracs.whosaidwhat transcriber apple`.
+    static var current: Transcriber {
+        let args = CommandLine.arguments
+        let flag = args.firstIndex(of: "--transcriber").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+        return (flag ?? UserDefaults.standard.string(forKey: "transcriber")).flatMap(Transcriber.init(rawValue:)) ?? .voz
+    }
+}
+
 enum Stage: Equatable {
     case idle
     case preparing
@@ -32,6 +48,8 @@ enum Stage: Equatable {
 /// assigns every transcribed word to the speaker turn it falls in.
 enum Pipeline {
     static let who = Who()
+    /// Loaded once and reused. The first load after the download takes 10-30s while Core ML prepares the Neural Engine.
+    static let voz = Task { try await Voz() }
 
     /// AVAudioFile reads wav/aiff/mp3/m4a/caf directly; anything else (video, odd containers)
     /// gets its audio track decoded to a temporary PCM file first (no lossy re-encode).
@@ -83,6 +101,9 @@ enum Pipeline {
         progress(0.5)
         // Decode up front so the timing below covers only the model.
         let samples = try decodeMono(url, sampleRate: 16_000)
+        // On first run both models compile for the Neural Engine, and side by side Voz's ~10s
+        // compile stretches to the length of Who's. Let Voz finish first.
+        if Transcriber.current == .voz { _ = try? await voz.value }
         let clock = ContinuousClock.now
         // Drop "speakers" with under 2% of the audio: laughs, coughs, short blips.
         let result = try await who.diarize(samples: samples, sampleRate: 16_000)
@@ -123,9 +144,33 @@ enum Pipeline {
         return samples
     }
 
-    /// Returns the words and the seconds spent transcribing (speech model install excluded).
+    /// Returns the words and the seconds spent transcribing (model download, loading and audio decoding excluded).
+    /// `status` names a slow setup step (model download or Neural Engine preparation) while it runs, then nil.
     static func transcribe(_ url: URL, duration: Double,
+                           status: @escaping @Sendable (String?) -> Void = { _ in },
                            progress: @escaping @Sendable (Double) -> Void) async throws -> ([Word], Double) {
+        switch Transcriber.current {
+        case .voz: return try await transcribeWithVoz(url, status: status, progress: progress)
+        case .apple: return try await transcribeWithApple(url, duration: duration, progress: progress)
+        }
+    }
+
+    static func transcribeWithVoz(_ url: URL, status: @escaping @Sendable (String?) -> Void,
+                                  progress: @escaping @Sendable (Double) -> Void) async throws -> ([Word], Double) {
+        // isDownloaded() hashes all 337 MB of weights, so ask once, here, never from the UI.
+        status(Voz.isDownloaded() ? "preparing model" : "downloading model")
+        let model = try await voz.value
+        status(nil)
+        let samples = try decodeMono(url, sampleRate: model.sampleRate)
+        let clock = ContinuousClock.now
+        let result = try await model.transcribe(samples: samples) { progress($0.fractionCompleted) }
+        let seconds = (ContinuousClock.now - clock).seconds
+        // Voz words carry no spacing; SpeechTranscriber's runs do, and the exports join words as they are.
+        return (result.words.map { Word(text: " " + $0.text, start: $0.start, end: $0.end) }, seconds)
+    }
+
+    static func transcribeWithApple(_ url: URL, duration: Double,
+                                    progress: @escaping @Sendable (Double) -> Void) async throws -> ([Word], Double) {
         let locale = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: "en-US"))
             ?? Locale(identifier: "en-US")
         let transcriber = SpeechTranscriber(locale: locale,
