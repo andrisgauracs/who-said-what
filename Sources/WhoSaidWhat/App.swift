@@ -11,6 +11,8 @@ struct WhoSaidWhatApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
+        // Start loading Voz now, so its first-run Neural Engine preparation runs while the drop zone waits.
+        if Transcriber.current == .voz { _ = Pipeline.voz }
         // `WhoSaidWhat --print file.wav [--format txt|srt|vtt|json] [--names "A,B"]` runs without the window and prints the transcript.
         let args = CommandLine.arguments
         if let i = args.firstIndex(of: "--print"), i + 1 < args.count {

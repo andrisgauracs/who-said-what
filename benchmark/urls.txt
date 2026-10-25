@@ -1,0 +1,9 @@
+ami.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/ami/test-00003-of-00015.parquet
+earnings22.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/earnings22/test-00002-of-00005.parquet
+gigaspeech.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/gigaspeech/test-00012-of-00019.parquet
+librispeech_clean.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/librispeech/test.clean-00000-of-00001.parquet
+librispeech_other.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/librispeech/test.other-00000-of-00001.parquet
+spgispeech.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/spgispeech/test-00030-of-00038.parquet
+voxpopuli.parquet https://huggingface.co/datasets/hf-audio/open-asr-leaderboard/resolve/main/voxpopuli/test-00002-of-00004.parquet
+tedlium_long.parquet https://huggingface.co/datasets/distil-whisper/tedlium-long-form/resolve/refs%2Fconvert%2Fparquet/default/test/0000.parquet
+earnings21_long.parquet https://huggingface.co/datasets/distil-whisper/earnings21/resolve/refs%2Fconvert%2Fparquet/full/test/0000.parquet

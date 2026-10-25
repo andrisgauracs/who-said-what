@@ -3,3 +3,6 @@
 .swiftpm/
 .DS_Store
 SUMMARY.md
+benchmark/data/
+benchmark/results/*.jsonl
+benchmark/results/summary.json
